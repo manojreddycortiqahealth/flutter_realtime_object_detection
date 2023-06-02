@@ -7,7 +7,7 @@ import 'package:tflite/tflite.dart';
 enum ModelType { YOLO, SSDMobileNet, MobileNet, PoseNet }
 
 class TensorFlowService {
-  ModelType _type = ModelType.YOLO;
+  ModelType _type = ModelType.SSDMobileNet;
 
   ModelType get type => _type;
 
@@ -22,13 +22,15 @@ class TensorFlowService {
       switch (type) {
         case ModelType.YOLO:
           res = await Tflite.loadModel(
-              model: 'assets/models/yolov2_tiny.tflite',
-              labels: 'assets/models/yolov2_tiny.txt');
+            model: 'assets/models/detect_with_metadata.tflite',
+            labels: 'assets/models/labelmap.txt',
+          );
           break;
         case ModelType.SSDMobileNet:
           res = await Tflite.loadModel(
-              model: 'assets/models/ssd_mobilenet.tflite',
-              labels: 'assets/models/ssd_mobilenet.txt');
+            model: 'assets/models/detect_11k_steps.tflite',
+            labels: 'assets/models/labelmap.txt',
+          );
           break;
         case ModelType.MobileNet:
           res = await Tflite.loadModel(
@@ -45,8 +47,9 @@ class TensorFlowService {
               labels: 'assets/models/yolov2_tiny.txt');
       }
       print('loadModel: $res - $_type');
-    } on PlatformException {
-      print('Failed to load model.');
+    } catch (e) {
+      print('Failed to load the model');
+      print(e);
     }
   }
 
@@ -81,19 +84,18 @@ class TensorFlowService {
           imageWidth: image.width,
           imageMean: 127.5,
           imageStd: 127.5,
-          threshold: 0.4,
+          threshold: 0.3,
           numResultsPerClass: 1,
         );
         break;
       case ModelType.MobileNet:
         recognitions = await Tflite.runModelOnFrame(
-          bytesList: image.planes.map((plane) {
-            return plane.bytes;
-          }).toList(),
-          imageHeight: image.height,
-          imageWidth: image.width,
-          numResults: 5
-        );
+            bytesList: image.planes.map((plane) {
+              return plane.bytes;
+            }).toList(),
+            imageHeight: image.height,
+            imageWidth: image.width,
+            numResults: 5);
         break;
       case ModelType.PoseNet:
         recognitions = await Tflite.runPoseNetOnFrame(
@@ -102,8 +104,7 @@ class TensorFlowService {
             }).toList(),
             imageHeight: image.height,
             imageWidth: image.width,
-            numResults: 5
-        );
+            numResults: 5);
         break;
       default:
     }
